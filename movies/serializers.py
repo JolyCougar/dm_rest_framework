@@ -1,10 +1,11 @@
 from rest_framework import serializers
 
-from .models import Movie, Review
+from .models import Movie, Review, Rating
 
 
 class FilterReviewListSerializer(serializers.ListSerializer):
     """ Filter reviews, only parent """
+
     def to_representation(self, data):
         data = data.filter(parent=None)
         return super().to_representation(data)
@@ -12,6 +13,7 @@ class FilterReviewListSerializer(serializers.ListSerializer):
 
 class RecursiveSerializer(serializers.Serializer):
     """ Out recursive children """
+
     def to_representation(self, value):
         serializer = self.parent.parent.__class__(value, context=self.context)
         return serializer.data
@@ -54,3 +56,19 @@ class MovieDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movie
         exclude = ("draft",)
+
+
+class CreateRatingSerializer(serializers.ModelSerializer):
+    """ Add Rating to movie from user """
+    class Meta:
+        model = Rating
+        fields = ("star", "movie")
+
+    def create(self, validated_data):
+        rating = Rating.objects.update_or_create(
+            ip=validated_data.get('ip', None),
+            movie=validated_data.get('movie', None),
+            defaults={'star': validated_data.get('star')}
+        )
+
+        return rating
